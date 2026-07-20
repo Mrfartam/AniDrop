@@ -1,0 +1,745 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AniDrop — Панель Управления</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes gacha-spin {
+            0% {
+                transform: rotate(0deg) scale(1);
+            }
+
+            50% {
+                transform: rotate(180deg) scale(1.05);
+            }
+
+            100% {
+                transform: rotate(360deg) scale(1);
+            }
+        }
+
+        .animate-gacha {
+            animation: gacha-spin 1.2s ease-in-out infinite;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #020617;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #334155;
+            }
+
+        .title-link {
+            color: #fff; /* Или твой основной цвет текста в приложении */
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+            .title-link:hover {
+                color: #a855f7; /* Цвет при наведении, например, фиолетовый под стиль кнопок */
+                text-decoration: underline; /* Подчеркивание только при наведении */
+            }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+
+    <!-- Навигация -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-indigo-500 to-fuchsia-500 p-2 rounded-xl shadow-lg">
+                <i class="fa-solid fa-cube text-xl text-white"></i>
+            </div>
+            <span class="text-2xl font-black tracking-wider bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-transparent">ANIDROP</span>
+        </div>
+        <div id="userInfo" class="hidden flex items-center gap-4">
+            <div class="flex flex-col text-right">
+                <span id="usernameDisplay" class="text-sm font-bold text-slate-200"></span>
+                <span class="text-[10px] text-emerald-400"><i class="fa-solid fa-circle text-[6px] mr-1 mb-0.5"></i>Подключен</span>
+            </div>
+            <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-rose-950/40 hover:text-rose-400 border border-slate-700 px-3 py-1.5 rounded-lg cursor-pointer transition">
+                Выйти
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- Окна авторизации -->
+        <section id="authSection" class="max-w-md mx-auto my-12 bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+            <div class="flex border-b border-slate-800 mb-6 text-center">
+                <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="w-1/2 pb-3 font-bold text-indigo-400 border-b-2 border-indigo-500 cursor-pointer">Вход</button>
+                <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="w-1/2 pb-3 font-bold text-slate-400 hover:text-slate-200 cursor-pointer">Регистрация</button>
+            </div>
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Никнейм</label>
+                    <input type="text" id="username" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Пароль</label>
+                    <input type="password" id="password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-500 hover:bg-indigo-600 font-medium py-3 rounded-xl cursor-pointer transition">
+                    Войти
+                </button>
+            </form>
+        </section>
+
+        <!-- Рабочая зона -->
+        <section id="dashboardSection" class="hidden space-y-8">
+
+            <!-- Выбор пула и Шикимори -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Селектор пула -->
+                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Текущий пул</label>
+                        <div class="flex gap-2">
+                            <select id="poolSelect" onchange="onPoolChanged()" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 font-medium min-w-[200px] focus:outline-none focus:border-indigo-500">
+                                <option value="">-- Выберите пул --</option>
+                            </select>
+                            <button onclick="refreshPools()" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer"><i class="fa-solid fa-sync"></i></button>
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Новый пул</label>
+                        <form onsubmit="handleCreatePool(event)" class="flex gap-2">
+                            <input type="text" id="newPoolName" placeholder="Название..." required class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                            <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-sm font-medium px-4 py-2.5 rounded-xl cursor-pointer whitespace-nowrap">Создать</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Интеграция с Шикимори -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-center">
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Синхронизация Shikimori</label>
+                    <button onclick="linkShikimori()" class="w-full bg-emerald-600 hover:bg-emerald-700 font-medium py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-link"></i> Привязать / Обновить аккаунт
+                    </button>
+                </div>
+            </div>
+
+            <div id="poolContent" class="hidden space-y-8">
+                <!-- ВЕРХНИЙ БЛОК: Настройка тиров + АЛТАРЬ ГАЧИ -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                    <!-- 1. Настройка тиров -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-fit space-y-6">
+                        <div class="border-b border-slate-800 pb-3">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-400"></i> Структура тиров</h3>
+                        </div>
+
+                        <form onsubmit="handleCreateTier(event)" class="space-y-3 p-4 bg-slate-950 border border-slate-800 rounded-xl">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Имя (S, A, B)</label>
+                                    <input type="text" id="tierName" placeholder="S" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Шанс (%)</label>
+                                    <input type="number" id="tierChance" min="0" max="100" step="0.01" placeholder="0.1" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none">
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-slate-800 hover:bg-indigo-500 text-xs font-semibold py-2 rounded-lg transition text-slate-300 hover:text-white cursor-pointer">Добавить тир</button>
+                        </form>
+
+                        <div id="tiersList" class="space-y-2 max-h-[220px] overflow-y-auto pr-1"></div>
+                    </div>
+
+                    <!-- 2. Алтарь призыва (ДВУХЭТАПНЫЙ) -->
+                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between min-h-[420px] relative">
+                        <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-fuchsia-400"></i> Алтарь Призыва</h3>
+                            <button onclick="activateCurrentPool()" class="text-xs bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/30 px-3 py-1 rounded-lg cursor-pointer">Активировать пул</button>
+                        </div>
+
+                        <!-- Интерактивная зона -->
+                        <div class="flex-1 flex flex-col items-center justify-center my-4">
+
+                            <!-- Шаг 1: Ролл Тира -->
+                            <div id="stage1_RollTier" class="text-center space-y-4">
+                                <button onclick="rollTierStage()" class="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 font-bold uppercase tracking-wider rounded-xl shadow-lg cursor-pointer transition transform hover:scale-105 active:scale-95">
+                                    <i class="fa-solid fa-dice mr-2"></i> Этап 1: Крутить Тир
+                                </button>
+                                <p class="text-xs text-slate-500">Случайный выбор категории на основе весов</p>
+                            </div>
+
+                            <!-- Шаг анимации -->
+                            <div id="gachaLoading" class="hidden text-center space-y-4">
+                                <div class="w-16 h-16 border-4 border-t-fuchsia-500 border-indigo-500 border-b-slate-800 border-l-slate-800 rounded-full animate-gacha mx-auto"></div>
+                                <h4 id="gachaStatusText" class="text-sm font-bold text-indigo-400 uppercase tracking-widest animate-pulse">Вычисление...</h4>
+                            </div>
+
+                            <!-- Шаг 2: Результат тира + Кнопка Ролла Тайтла -->
+                            <div id="stage2_RollTitle" class="hidden text-center space-y-6">
+                                <div class="inline-block px-12 py-6 bg-slate-950 border-2 border-indigo-500 rounded-2xl shadow-xl">
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Выпавшая категория</p>
+                                    <h2 id="rolledTierName" class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-fuchsia-500 mt-2">S</h2>
+                                </div>
+                                <div class="block">
+                                    <button onclick="rollTitleStage()" class="px-8 py-4 bg-gradient-to-r from-fuchsia-500 to-rose-500 hover:from-fuchsia-600 hover:to-rose-600 font-bold uppercase tracking-wider rounded-xl shadow-lg cursor-pointer transition transform hover:scale-105 active:scale-95">
+                                        <i class="fa-solid fa-film mr-2"></i> Этап 2: Выбить тайтл из тира
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Шаг 3: Конечный Дроп Аниме -->
+                            <div id="stage3_FinalResult" class="hidden w-full max-w-sm bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+                                <div id="finalTierBadge" class="py-1.5 text-center text-xs font-black uppercase text-white bg-indigo-600">ТИР</div>
+                                <div class="p-4 flex flex-col items-center text-center">
+                                    <img id="finalPoster" src="" class="w-36 h-52 object-cover rounded-lg border border-slate-800 bg-slate-900 mb-3 shadow">
+                                    <h4 id="finalTitleRu" class="text-base font-bold text-white line-clamp-2">Название</h4>
+                                    <a id="finalShikiUrl" href="#" target="_blank" class="mt-3 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 px-4 py-2 rounded-lg text-slate-400 hover:text-white transition block w-full">Открыть на Шикимори</a>
+                                    <button onclick="resetGacha()" class="mt-4 text-xs text-indigo-400 hover:underline cursor-pointer"><i class="fa-solid fa-rotate-left mr-1"></i> Назад к алтарю</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- НИЖНИЙ БЛОК: ИМПОРТ ИЗ ШИКИМОРИ И РАСКИДКА ПО ТИРАМ -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                    <!-- Панель Загрузки (Сезоны / Запланированное) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+                        <div class="border-b border-slate-800 pb-3">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i> Импорт тайтлов</h3>
+                        </div>
+
+                        <!-- Вкладки импорта -->
+                        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs text-center">
+                            <button id="tabSeasonBtn" onclick="switchImportMode('season')" class="w-1/2 py-2 rounded-lg font-semibold bg-slate-800 text-white cursor-pointer">По Сезону</button>
+                            <button id="tabPlannedBtn" onclick="switchImportMode('planned')" class="w-1/2 py-2 rounded-lg font-semibold text-slate-400 cursor-pointer">Запланированное</button>
+                        </div>
+
+                        <!-- Форма: Сезон -->
+                        <div id="importSeasonForm" class="space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Сезон</label>
+                                    <select id="seasonName" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none">
+                                        <option value="winter">Зима</option>
+                                        <option value="spring">Весна</option>
+                                        <option value="summer">Лето</option>
+                                        <option value="fall">Осень</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Год</label>
+                                    <input type="number" id="seasonYear" value="2026" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none">
+                                </div>
+                            </div>
+                            <button onclick="fetchSeasonTitles()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold py-2 rounded-lg cursor-pointer transition">Найти тайтлы сезона</button>
+                        </div>
+
+                        <!-- Форма: Запланированное -->
+                        <div id="importPlannedForm" class="hidden space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Критерий</label>
+                                    <select id="plannedCriteria" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none">
+                                        <option value="oldest">Старые</option>
+                                        <option value="newest">Новые</option>
+                                        <option value="random">Рандомные</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Количество</label>
+                                    <input type="number" id="plannedCount" value="10" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none">
+                                </div>
+                            </div>
+                            <button onclick="fetchPlannedTitles()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold py-2 rounded-lg cursor-pointer transition">Получить из списка</button>
+                        </div>
+
+                        <!-- Буфер найденного -->
+                        <div class="space-y-2 pt-2 border-t border-slate-800">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-slate-400">Найдено в Shikimori: <span id="bufferCount" class="text-white">0</span></span>
+                                <button onclick="addBufferToPool()" id="pushToPoolBtn" class="hidden text-indigo-400 hover:underline font-bold">Закинуть в пул</button>
+                            </div>
+                            <div id="importBufferList" class="max-h-[180px] overflow-y-auto bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs space-y-1">
+                                <p class="text-slate-600 text-center py-4">Список пуст. Выполните поиск.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Большой менеджер распределения по тирам -->
+                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col">
+                        <div class="border-b border-slate-800 pb-3 mb-4">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-folder-tree text-indigo-400"></i> Содержимое пула и привязка к тирам</h3>
+                            <p class="text-xs text-slate-400 mt-1">Здесь лежат все тайтлы пула. Распределите их по категориям, чтобы они участвовали в гаче.</p>
+                        </div>
+
+                        <!-- Список элементов пула -->
+                        <div class="flex-1 max-h-[380px] overflow-y-auto pr-1">
+                            <div class="overflow-x-auto w-full">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-bold">
+                                            <th class="pb-2 w-12 text-center">ID</th>
+                                            <th class="pb-2">Название аниме</th>
+                                            <th class="pb-2 w-48">Назначенный Тир</th>
+                                            <th class="pb-2 w-16 text-center">Управление</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="poolItemsTableBody" class="divide-y divide-slate-800/60">
+                                        <!-- Сюде рендерятся строки тайтлов из GetPoolById -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Заглушка -->
+            <div id="noPoolsPlaceholder" class="text-center py-16 bg-slate-900/40 border border-slate-800 border-dashed rounded-2xl">
+                <i class="fa-solid fa-folder-open text-4xl text-slate-600 mb-3"></i>
+                <h3 class="text-base font-bold text-slate-400">У вас пока нет созданных пулов</h3>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        const API_BASE_URL = "https://localhost:44394";
+
+        let jwtToken = localStorage.getItem('token') || '';
+        let currentUsername = localStorage.getItem('username') || '';
+        let currentPoolId = null;
+        let authTab = 'login';
+        let importMode = 'season';
+
+        let localTiersBuffer = []; // Массив текущих тиров для селекторов
+        let searchTitlesBuffer = []; // Буфер для хранения найденных аниме перед отправкой в пул
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            if (code && jwtToken) handleShikimoriCallback(code);
+            checkAuth();
+        });
+
+        function checkAuth() {
+            if (jwtToken) {
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('usernameDisplay').innerText = currentUsername;
+                refreshPools();
+            } else {
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('dashboardSection').classList.add('hidden');
+                document.getElementById('userInfo').classList.add('hidden');
+            }
+        }
+
+        function switchAuthTab(tab) {
+            authTab = tab;
+            document.getElementById('tabLoginBtn').className = tab === 'login' ? "w-1/2 pb-3 font-bold text-indigo-400 border-b-2 border-indigo-500 cursor-pointer" : "w-1/2 pb-3 font-bold text-slate-400 hover:text-slate-200 cursor-pointer";
+            document.getElementById('tabRegisterBtn').className = tab === 'register' ? "w-1/2 pb-3 font-bold text-indigo-400 border-b-2 border-indigo-500 cursor-pointer" : "w-1/2 pb-3 font-bold text-slate-400 hover:text-slate-200 cursor-pointer";
+            document.getElementById('authSubmitBtn').innerText = tab === 'login' ? "Войти" : "Зарегистрироваться";
+        }
+
+        function switchImportMode(mode) {
+            importMode = mode;
+            document.getElementById('tabSeasonBtn').className = mode === 'season' ? "w-1/2 py-2 rounded-lg font-semibold bg-slate-800 text-white cursor-pointer" : "w-1/2 py-2 rounded-lg font-semibold text-slate-400 cursor-pointer";
+            document.getElementById('tabPlannedBtn').className = mode === 'planned' ? "w-1/2 py-2 rounded-lg font-semibold bg-slate-800 text-white cursor-pointer" : "w-1/2 py-2 rounded-lg font-semibold text-slate-400 cursor-pointer";
+            document.getElementById('importSeasonForm').classList.toggle('hidden', mode !== 'season');
+            document.getElementById('importPlannedForm').classList.toggle('hidden', mode !== 'planned');
+        }
+
+        function getHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwtToken}` };
+        }
+
+        // --- AUTH ---
+        async function handleAuthSubmit(event) {
+            event.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const path = authTab === 'login' ? '/api/Auth/login' : '/api/Auth/register';
+
+            try {
+                const r = await fetch(`${API_BASE_URL}${path}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                if (!r.ok) throw new Error(await r.text());
+
+                if (authTab === 'login') {
+                    const data = await r.json();
+                    jwtToken = data.token;
+                    currentUsername = u;
+                    localStorage.setItem('token', jwtToken);
+                    localStorage.setItem('username', currentUsername);
+                    checkAuth();
+                } else {
+                    alert('Регистрация успешна!');
+                    switchAuthTab('login');
+                }
+            } catch (err) { alert(err.message); }
+        }
+
+        function logout() { localStorage.clear(); location.href = window.location.origin; }
+
+        // --- SHIKIMORI INTEGRATION ---
+        async function linkShikimori() {
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/shikimori/login-url`, { headers: getHeaders() });
+                if (!r.ok) throw new Error('Сначала авторизуйтесь в системе через JWT.');
+                const d = await r.json();
+                window.location.href = d.url;
+            } catch (e) { alert(e.message); }
+        }
+
+        async function handleShikimoriCallback(code) {
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/shikimori/callback?code=${code}`, { headers: getHeaders() });
+                if (r.ok) {
+                    alert('Успешно синхронизировано с Shikimori!');
+                    window.history.replaceState({}, document.title, "/");
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // --- ТЯНЕМ ТАЙТЛЫ ИЗ ШИКИМОРИ В БУФЕР ---
+        async function fetchSeasonTitles() {
+            const s = document.getElementById('seasonName').value;
+            const y = document.getElementById('seasonYear').value;
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/shikimori/season?season=${s}&year=${y}`, { headers: getHeaders() });
+                if (!r.ok) throw new Error('Ошибка поиска');
+                searchTitlesBuffer = await r.json();
+                renderBuffer();
+            } catch (e) { alert(e.message); }
+        }
+
+        async function fetchPlannedTitles() {
+            const c = document.getElementById('plannedCriteria').value;
+            const cnt = document.getElementById('plannedCount').value;
+            // Передаем заглушку userId=1, так как бэк извлечет реального юзера из токена либо использует переданный параметр
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/shikimori/planned?criteria=${c}&count=${cnt}`, { headers: getHeaders() });
+                if (!r.ok) throw new Error('Не удалось получить запланированные тайтлы. Проверьте линк аккаунта.');
+                searchTitlesBuffer = await r.json();
+                renderBuffer();
+            } catch (e) { alert(e.message); }
+        }
+
+        function renderBuffer() {
+            const container = document.getElementById('importBufferList');
+            document.getElementById('bufferCount').innerText = searchTitlesBuffer.length;
+            container.innerHTML = '';
+
+            if (searchTitlesBuffer.length === 0) {
+                container.innerHTML = '<p class="text-slate-600 text-center py-4">Ничего не найдено.</p>';
+                document.getElementById('pushToPoolBtn').classList.add('hidden');
+                return;
+            }
+            document.getElementById('pushToPoolBtn').classList.remove('hidden');
+            searchTitlesBuffer.forEach(t => {
+                const d = document.createElement('div');
+                d.className = 'py-1 px-2 bg-slate-900 border border-slate-800 rounded flex justify-between items-center text-[11px]';
+                d.innerHTML = `<span class="truncate max-w-[180px] font-medium">${t.titleRu || t.titleEn}</span><span class="text-slate-500 text-[9px]">ID: ${t.id}</span>`;
+                container.appendChild(d);
+            });
+        }
+
+        // ШАГ ДОБАВЛЕНИЯ ТАЙТЛОВ ИЗ БУФЕРА В ПУЛ БАЗЫ ДАННЫХ
+        async function addBufferToPool() {
+            if (!currentPoolId || searchTitlesBuffer.length === 0) return;
+
+            try {
+                // Сначала добавляем каждый тайтл в глобальный реестр аниме (чтобы избежать FK-ошибок, если их еще нет в базе)
+                for (let anime of searchTitlesBuffer) {
+                    await fetch(`${API_BASE_URL}/api/titles`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify(anime)
+                    });
+                }
+
+                // Теперь связываем массив ID с текущим пулом
+                const ids = searchTitlesBuffer.map(x => x.id);
+                const r = await fetch(`${API_BASE_URL}/api/pools/${currentPoolId}/titles`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(ids)
+                });
+
+                if (r.ok) {
+                    alert('Тайтлы успешно добавлены в пул!');
+                    searchTitlesBuffer = [];
+                    renderBuffer();
+                    loadPoolDetails(currentPoolId);
+                }
+            } catch (e) { alert('Ошибка импорта в пул'); }
+        }
+
+        // --- УПРАВЛЕНИЕ ПУЛАМИ И ТИРАМИ ---
+        async function refreshPools() {
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/pools`, { headers: getHeaders() });
+                const pools = await r.json();
+                const select = document.getElementById('poolSelect');
+                select.innerHTML = '<option value="">-- Выберите пул --</option>';
+
+                if (pools.length > 0) {
+                    document.getElementById('noPoolsPlaceholder').classList.add('hidden');
+                    pools.forEach(p => {
+                        const o = document.createElement('option');
+                        o.value = p.id;
+                        o.textContent = p.name + (p.isActive ? ' (Активен)' : '');
+                        if (p.isActive && !currentPoolId) { currentPoolId = p.id; o.selected = true; }
+                        select.appendChild(o);
+                    });
+                    if (currentPoolId) { select.value = currentPoolId; loadPoolDetails(currentPoolId); }
+                } else {
+                    document.getElementById('noPoolsPlaceholder').classList.remove('hidden');
+                    document.getElementById('poolContent').classList.add('hidden');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function handleCreatePool(event) {
+            event.preventDefault();
+            const inp = document.getElementById('newPoolName');
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/pools`, {
+                    method: 'POST', headers: getHeaders(), body: JSON.stringify({ name: inp.value })
+                });
+                if (r.ok) { inp.value = ''; refreshPools(); }
+            } catch (e) { console.error(e); }
+        }
+
+        async function onPoolChanged() {
+            currentPoolId = document.getElementById('poolSelect').value;
+            if (currentPoolId) loadPoolDetails(currentPoolId);
+            else document.getElementById('poolContent').classList.add('hidden');
+        }
+
+        async function loadPoolDetails(poolId) {
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/pools/${poolId}`, { headers: getHeaders() });
+                const pool = await r.json();
+                document.getElementById('poolContent').classList.remove('hidden');
+
+                localTiersBuffer = pool.tierLists || [];
+                renderTiers(localTiersBuffer);
+                renderPoolItems(pool.poolItems || []); // Рендерим тайтлы внутри пула
+                resetGacha();
+            } catch (e) { console.error(e); }
+        }
+
+        function renderTiers(tiers) {
+            const c = document.getElementById('tiersList');
+            c.innerHTML = tiers.length === 0 ? '<p class="text-xs text-slate-500 text-center py-4">Тиры не созданы</p>' : '';
+            tiers.forEach(t => {
+                const d = document.createElement('div');
+                d.className = 'flex justify-between items-center bg-slate-950 border border-slate-800 p-2.5 rounded-xl';
+                d.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-400">${t.name}</span>
+                            <div><p class="text-[11px] font-bold text-white">Шанс: ${t.dropChance}%</p></div>
+                        </div>
+                        <button onclick="deleteTier('${t.id}')" class="text-slate-600 hover:text-rose-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                    `;
+                c.appendChild(d);
+            });
+        }
+
+        async function handleCreateTier(event) {
+            event.preventDefault();
+            const name = document.getElementById('tierName').value;
+            const chance = parseFloat(document.getElementById('tierChance').value);
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/pools/${currentPoolId}/tiers`, {
+                    method: 'POST', headers: getHeaders(), body: JSON.stringify({ name: name, dropChance: chance })
+                });
+                if (r.ok) {
+                    document.getElementById('tierName').value = '';
+                    document.getElementById('tierChance').value = '';
+                    loadPoolDetails(currentPoolId);
+                } else alert(await r.text());
+            } catch (e) { console.error(e); }
+        }
+
+        async function deleteTier(id) {
+            if (!confirm('Удалить категорию?')) return;
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/pools/tiers/${id}`, { method: 'DELETE', headers: getHeaders() });
+                if (r.ok) loadPoolDetails(currentPoolId);
+            } catch (e) { console.error(e); }
+        }
+
+        async function activateCurrentPool() {
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/pools/${currentPoolId}/activate`, { method: 'POST', headers: getHeaders() });
+                if (r.ok) { alert('Пул активирован!'); refreshPools(); }
+            } catch (e) { console.error(e); }
+        }
+
+        // --- РАСКИДКА ПУЛА ПО ТИРАМ ---
+        function renderPoolItems(items) {
+            const tbody = document.getElementById('poolItemsTableBody');
+            tbody.innerHTML = items.length === 0 ? '<tr><td colspan="4" class="text-center py-6 text-slate-600">В пуле пока нет аниме. Импортируйте их из блока слева.</td></tr>' : '';
+
+            items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-800/40 hover:bg-slate-900/20";
+
+                // Генерируем опции выбора тира
+                let optionsHtml = '<option value="">-- Не назначен (исключен) --</option>';
+                localTiersBuffer.forEach(tier => {
+                    const selected = item.tierListId === tier.id ? 'selected' : '';
+                    optionsHtml += `<option value="${tier.id}" ${selected}>${tier.name} (${tier.dropChance}%)</option>`;
+                });
+
+                // Формируем ссылку на Шикимори по ID тайтла
+                const shikimoriUrl = `https://shikimori.io/animes/${item.animeTitleId}`;
+                const titleText = item.animeTitle?.titleRu || 'Загрузка...';
+
+                tr.innerHTML = `
+                <td class="py-3 text-center text-slate-500 text-[10px]">${item.animeTitleId}</td>
+                <td class="py-3 font-semibold pr-2">
+                    <!-- Завернули div в ссылку, добавили стили для красивого ховера и сбросили стандартный синий цвет -->
+                    <a href="${shikimoriUrl}" target="_blank" rel="noopener noreferrer" 
+                       class="text-slate-200 hover:text-indigo-400 transition-colors duration-150 inline-block max-w-[280px]">
+                        <div class="truncate" title="${titleText}">
+                            ${titleText}
+                        </div>
+                    </a>
+                </td>
+                <td class="py-3">
+                    <select onchange="assignTitleToTier('${item.id}', this.value)" class="w-full bg-slate-950 border border-slate-800 text-[11px] rounded px-2 py-1 focus:border-indigo-500 focus:outline-none">
+                        optionsHtml
+                    </select>
+                </td>
+                <td class="py-3 text-center">
+                    <button onclick="excludeItem('${item.id}', ${!item.isExcluded})" class="text-xs px-2 py-0.5 rounded ${item.isExcluded ? 'bg-rose-950/40 text-rose-400 border border-rose-900/50' : 'bg-slate-800 text-slate-400'}">
+                        ${item.isExcluded ? 'В бане' : 'Искл.'}
+                    </button>
+                </td>
+            `.replace('optionsHtml', optionsHtml);
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function assignTitleToTier(poolItemId, tierId) {
+            try {
+                // Если tierId пустой, передаем null, чтобы очистить привязку к тиру
+                const query = tierId ? `?tierId=${tierId}` : '';
+                const r = await fetch(`${API_BASE_URL}/api/pools/items/${poolItemId}/assign${query}`, {
+                    method: 'POST', headers: getHeaders()
+                });
+                if (!r.ok) alert(await r.text());
+            } catch (e) { console.error(e); }
+        }
+
+        async function excludeItem(poolItemId, shouldExclude) {
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/pools/items/${poolItemId}/exclude?exclude=${shouldExclude}`, {
+                    method: 'POST', headers: getHeaders()
+                });
+                if (r.ok) loadPoolDetails(currentPoolId);
+            } catch (e) { console.error(e); }
+        }
+
+        // --- ЧЕСТНЫЙ ДВУХЭТАПНЫЙ РОЛЛ (ГАЧА) ---
+        let currentRolledTierId = null;
+
+        async function rollTierStage() {
+            if (!currentPoolId) return;
+
+            const s1 = document.getElementById('stage1_RollTier');
+            const ld = document.getElementById('gachaLoading');
+            const txt = document.getElementById('gachaStatusText');
+
+            s1.classList.add('hidden');
+            ld.classList.remove('hidden');
+            txt.innerText = "Расчет весов категорий...";
+
+            try {
+                // ЭТАП 1: Роллим строго тир-лист
+                const r = await fetch(`${API_BASE_URL}/api/pools/${currentPoolId}/roll-tier`, { method: 'POST', headers: getHeaders() });
+                if (!r.ok) throw new Error(await r.text());
+                const res = await r.json();
+
+                await new Promise(res => setTimeout(res, 800)); // Атмосферный саспенс
+
+                ld.classList.add('hidden');
+
+                // Переходим на этап 2 — отображение выигранного тира
+                currentRolledTierId = res.tierId;
+                document.getElementById('rolledTierName').innerText = res.tierName;
+                document.getElementById('stage2_RollTitle').classList.remove('hidden');
+
+            } catch (e) {
+                alert(`Ошибка: ${e.message}`);
+                resetGacha();
+            }
+        }
+
+        async function rollTitleStage() {
+            if (!currentPoolId || !currentRolledTierId) return;
+
+            const s2 = document.getElementById('stage2_RollTitle');
+            const ld = document.getElementById('gachaLoading');
+            const txt = document.getElementById('gachaStatusText');
+
+            s2.classList.add('hidden');
+            ld.classList.remove('hidden');
+            txt.innerText = `Выбор тайтла внутри категории...`;
+
+            try {
+                // ЭТАП 2: Роллим тайтл из конкретного выигранного тира
+                const r = await fetch(`${API_BASE_URL}/api/pools/${currentPoolId}/roll-title/${currentRolledTierId}`, { method: 'POST', headers: getHeaders() });
+                if (!r.ok) throw new Error(await r.text());
+                const title = await r.json();
+
+                await new Promise(res => setTimeout(res, 600));
+                ld.classList.add('hidden');
+
+                // Показываем финальный результат
+                document.getElementById('finalPoster').src = title.imageUrl || 'https://placehold.co/300x450/1e293b/ffffff?text=No+Poster';
+                document.getElementById('finalTitleRu').innerText = title.titleRu;
+
+                const link = document.getElementById('finalShikiUrl');
+                if (title.url) { link.href = title.url; link.classList.remove('hidden'); }
+                else link.classList.add('hidden');
+
+                document.getElementById('stage3_FinalResult').classList.remove('hidden');
+
+            } catch (e) {
+                alert(`Ошибка: ${e.message}`);
+                resetGacha();
+            }
+        }
+
+        function resetGacha() {
+            currentRolledTierId = null;
+            document.getElementById('stage1_RollTier').classList.remove('hidden');
+            document.getElementById('gachaLoading').classList.add('hidden');
+            document.getElementById('stage2_RollTitle').classList.add('hidden');
+            document.getElementById('stage3_FinalResult').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
