@@ -24,9 +24,7 @@ public class AnimeTitleControllers : Controller
     {
         var exists = await _context.AnimeTitles.AnyAsync(t => t.Id == title.Id);
         if (exists)
-        {
             return BadRequest($"Тайтл с ID {title.Id} уже существует в базе");
-        }
 
         _context.AnimeTitles.Add(title);
         await _context.SaveChangesAsync();

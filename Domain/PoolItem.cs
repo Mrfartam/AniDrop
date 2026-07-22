@@ -18,8 +18,7 @@ public class PoolItem
     [ForeignKey("TierList")]
     public Guid? TierListId { get; set; }
     public bool IsExcluded {  get; set; } = false;
-    public bool IsRolled { get; set; } = false;
-    public virtual TitlePool Pool { get; set; } = null;
-    public virtual AnimeTitle AnimeTitle { get; set; } = null;
+    public virtual TitlePool Pool { get; set; } = null!;
+    public virtual AnimeTitle AnimeTitle { get; set; } = null!;
     public virtual TierList? Tier { get; set; }
 }

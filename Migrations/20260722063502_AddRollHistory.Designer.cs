@@ -3,6 +3,7 @@ using System;
 using AniDrop.DBInfrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AniDrop.Migrations
 {
     [DbContext(typeof(AniDropDBContext))]
-    partial class AniDropDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260722063502_AddRollHistory")]
+    partial class AddRollHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -96,6 +99,9 @@ namespace AniDrop.Migrations
                     b.Property<Guid>("PoolItem")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("PoolItemNavigationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("RolledAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -104,7 +110,7 @@ namespace AniDrop.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PoolItem");
+                    b.HasIndex("PoolItemNavigationId");
 
                     b.HasIndex("UserId");
 
@@ -238,7 +244,7 @@ namespace AniDrop.Migrations
                 {
                     b.HasOne("AniDrop.Domain.PoolItem", "PoolItemNavigation")
                         .WithMany()
-                        .HasForeignKey("PoolItem")
+                        .HasForeignKey("PoolItemNavigationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

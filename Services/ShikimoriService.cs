@@ -69,7 +69,6 @@ public class ShikimoriService : IShikimoriService
 
         var profile = await _context.ShikimoriProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
         var expireaAt = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn);
-
         if(profile == null)
         {
             profile = new ShikimoriProfile
@@ -130,6 +129,7 @@ public class ShikimoriService : IShikimoriService
     }
     public async Task<List<AnimeTitle>> GetPlannedTitlesAsync(int userId, string criteria, int count)
     {
+        await GetValidAccessTokenAsync(userId);
         var profile = await _context.ShikimoriProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
         if (profile == null) throw new Exception("Профиль Шикимори не привязан");
 
@@ -172,9 +172,7 @@ public class ShikimoriService : IShikimoriService
             var rawJson = await response.Content.ReadAsStringAsync();
 
             if (rawJson.Contains("\"errors\""))
-            {
                 throw new Exception($"Ошибка Шикимори GraphQL: {rawJson}");
-            }
 
             var jsonResult = JsonSerializer.Deserialize<GraphQLResponse>(rawJson);
             var pageRates = jsonResult?.Data?.UserRates;
@@ -187,9 +185,7 @@ public class ShikimoriService : IShikimoriService
 
                     string seasonYear = "Unknown";
                     if (!string.IsNullOrEmpty(rate.Anime.AiredOn?.Date) && rate.Anime.AiredOn.Date.Length >= 4)
-                    {
                         seasonYear = $"{rate.Anime.AiredOn.Date.Substring(0, 4)}";
-                    }
 
                     allPlannedTitles.Add(new AnimeTitle
                     {
@@ -204,30 +200,20 @@ public class ShikimoriService : IShikimoriService
                 }
 
                 if (pageRates.Count < 50)
-                {
                     hasMore = false;
-                }
                 else
-                {
                     page++;
-                }
             }
             else
-            {
                 hasMore = false;
-            }
         }
 
         await SyncTitlesWithDatabaseAsync(allPlannedTitles);
 
         if (criteria.ToLower() == "random")
-        {
             return allPlannedTitles.OrderBy(_ => Guid.NewGuid()).Take(count).ToList();
-        }
         else if (criteria.ToLower() == "oldest")
-        {
             return allPlannedTitles.OrderBy(t => t.Id).Take(count).ToList();
-        }
 
         return allPlannedTitles.Take(count).ToList();
     }
@@ -270,9 +256,7 @@ public class ShikimoriService : IShikimoriService
             var rawJson = await response.Content.ReadAsStringAsync();
 
             if (rawJson.Contains("\"errors\""))
-            {
                 throw new Exception($"Ошибка Шикимори GraphQL: {rawJson}");
-            }
 
             var jsonResult = JsonSerializer.Deserialize<GraphQLResponse>(rawJson);
             var pageAnimes = jsonResult?.Data?.Animes;
@@ -296,18 +280,12 @@ public class ShikimoriService : IShikimoriService
                 }
 
                 if (pageAnimes.Count < 50)
-                {
                     hasMore = false;
-                }
                 else
-                {
                     page++;
-                }
             }
             else
-            {
                 hasMore = false;
-            }
         }
 
         await SyncTitlesWithDatabaseAsync(seasonTitles);

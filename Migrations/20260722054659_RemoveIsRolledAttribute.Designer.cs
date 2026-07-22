@@ -3,6 +3,7 @@ using System;
 using AniDrop.DBInfrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AniDrop.Migrations
 {
     [DbContext(typeof(AniDropDBContext))]
-    partial class AniDropDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260722054659_RemoveIsRolledAttribute")]
+    partial class RemoveIsRolledAttribute
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,10 +106,6 @@ namespace AniDrop.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PoolItem");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("RollHistory");
                 });
@@ -232,25 +231,6 @@ namespace AniDrop.Migrations
                     b.Navigation("Pool");
 
                     b.Navigation("Tier");
-                });
-
-            modelBuilder.Entity("AniDrop.Domain.RollHistory", b =>
-                {
-                    b.HasOne("AniDrop.Domain.PoolItem", "PoolItemNavigation")
-                        .WithMany()
-                        .HasForeignKey("PoolItem")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AniDrop.Domain.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PoolItemNavigation");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AniDrop.Domain.ShikimoriProfile", b =>

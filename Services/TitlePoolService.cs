@@ -120,8 +120,7 @@ public class TitlePoolService : ITitlePoolService
                     Id = Guid.NewGuid(),
                     PoolId = poolId,
                     AnimeTitleId = animeId,
-                    IsExcluded = false,
-                    IsRolled = false
+                    IsExcluded = false
                 };
                 _context.PoolItems.Add(poolItem);
             }
@@ -167,7 +166,7 @@ public class TitlePoolService : ITitlePoolService
         if (pool == null)
             throw new KeyNotFoundException("Пул не найден или у вас нет к нему доступа");
 
-        var availableItems = pool.PoolItems.Where(pi => !pi.IsRolled && !pi.IsExcluded).ToList();
+        var availableItems = pool.PoolItems.Where(pi => !pi.IsExcluded).ToList();
 
         if (!availableItems.Any())
             throw new InvalidOperationException("В пуле нет ни одного тайтла");
@@ -217,7 +216,7 @@ public class TitlePoolService : ITitlePoolService
             throw new KeyNotFoundException("Пул не найден или у вас нет к нему доступа");
 
         var tierItems = pool.PoolItems
-            .Where(pi => pi.TierListId == tierId && !pi.IsExcluded && !pi.IsRolled)
+            .Where(pi => pi.TierListId == tierId && !pi.IsExcluded)
             .ToList();
 
         if (!tierItems.Any())
@@ -226,19 +225,35 @@ public class TitlePoolService : ITitlePoolService
         int randomIndex = Random.Shared.Next(tierItems.Count);
         var rolledItem = tierItems[randomIndex];
 
-        rolledItem.IsRolled = true;
+        rolledItem.IsExcluded = true;
 
         var rollHistoryEntry = new RollHistory
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             PoolItem = rolledItem.Id,
-            RolledAt = DateTime.UtcNow
+            RolledAt = DateTime.UtcNow,
         };
 
         _context.RollHistory.Add(rollHistoryEntry);
         await _context.SaveChangesAsync();
 
         return rolledItem;
+    }
+    public async Task<List<RollHistoryDTO>> GetRollHistoryAsync(Guid poolId, int userId)
+    {
+        return await _context.RollHistory
+            .Where(r => r.UserId == userId && r.PoolItemNavigation.PoolId == poolId)
+            .OrderByDescending(r => r.RolledAt)
+            .Select(r => new RollHistoryDTO
+            {
+                Id = r.Id,
+                TitleRu = r.PoolItemNavigation.AnimeTitle.TitleRu,
+                TitleEn = r.PoolItemNavigation.AnimeTitle.TitleEn,
+                ImageUrl = r.PoolItemNavigation.AnimeTitle.ImageUrl,
+                TierName = r.PoolItemNavigation.Tier != null ? r.PoolItemNavigation.Tier.Name : "Без тира",
+                RolledAt = r.RolledAt
+            })
+            .ToListAsync();
     }
 }

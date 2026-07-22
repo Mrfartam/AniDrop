@@ -20,4 +20,5 @@ public interface ITitlePoolService
 
     Task<TierList> RollTierAsync(Guid poolId, int userId);
     Task<PoolItem> RollTitleFromTierAsync(Guid poolId, Guid tierId, int userId);
+    Task<List<RollHistoryDTO>> GetRollHistoryAsync(Guid poolId, int userId);
 }

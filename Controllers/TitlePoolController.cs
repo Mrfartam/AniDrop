@@ -210,4 +210,12 @@ public class TitlePoolController : Controller
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpGet("{poolId}/history")]
+    public async Task<IActionResult> GetRollHistory(Guid poolId)
+    {
+        var userId = GetCurrentUserId();
+        var history = await _poolService.GetRollHistoryAsync(poolId, userId);
+        return Ok(history);
+    }
 }
